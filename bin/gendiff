@@ -5,6 +5,8 @@
 $autoloadPath1 = __DIR__ . '/../../../autoload.php';
 $autoloadPath2 = __DIR__ . '/../vendor/autoload.php';
 
+error_reporting(E_USER_DEPRECATED);
+
 if (file_exists($autoloadPath1)) {
     require_once $autoloadPath1;
 } else {
@@ -29,6 +31,55 @@ function run()
     DOC;
 
     $args = Docopt::handle($doc);
+
+    $file1 =
+'{
+  "host": "hexlet.io",
+  "timeout": 50,
+  "proxy": "123.234.53.22",
+  "follow": false
+}';
+  
+$file2 =
+'{
+  "timeout": 20,
+  "verbose": true,
+  "host": "hexlet.io"
+}';
+    
+function genDiff($file1, $file2)
+{
+    $data1 = json_decode($file1, true);
+    $data2 = json_decode($file2, true);
+    $keys1 = array_keys($data1);
+    $keys2 = array_keys($data2);
+    $keys = array_unique(array_merge($keys1, $keys2));
+    sort($keys);
+
+    $diffResult = array_reduce($keys, function ($acc,  $key) use ($data1, $data2) {
+        $data1Key = var_export($data1[$key], true);
+        $data2Key = var_export($data2[$key], true);
+        if (array_key_exists($key, $data1) && !array_key_exists($key, $data2)) {
+            $acc = "{$acc}  - {$key}: {$data1Key}\n";
+        } elseif (!array_key_exists($key, $data1) && array_key_exists($key, $data2)) {
+            $acc = "{$acc}  + {$key}: {$data2Key}\n";
+        } elseif (array_key_exists($key, $data1) && array_key_exists($key, $data2)) {
+            if ($data1[$key] === $data2[$key]) {
+                $acc = "{$acc}    {$key}: {$data2Key}\n";
+            } else {
+                $acc = "{$acc}  - {$key}: {$data1Key}\n  + {$key}: {$data2Key}\n";
+            }
+        }
+        
+        return $acc;
+    }, "");
+
+    $diffResult = rtrim($diffResult);
+
+    return "{\n{$diffResult}\n}";
+}
+
+print_r(genDiff($file1, $file2) );
 }
 
 run();
